@@ -212,12 +212,13 @@ namespace Vodovoz
 				.RegisterWidgetForTabViewModel<PremiumViewModel, PremiumView>()
 				.RegisterWidgetForTabViewModel<PremiumRaskatGAZelleViewModel, PremiumRaskatGAZelleView>()
 				.RegisterWidgetForTabViewModel<PremiumTemplateViewModel, PremiumTemplateView>()
+				.RegisterWidgetForTabViewModel<CarViewModel, CarView>()
 				.RegisterWidgetForTabViewModel<CarEventTypeViewModel, CarEventTypeView>()
 				.RegisterWidgetForTabViewModel<CarEventViewModel, CarEventView>()
 ;
 
-            //Регистрация виджетов
-            ViewModelWidgetResolver.Instance
+			//Регистрация виджетов
+			ViewModelWidgetResolver.Instance
 				.RegisterWidgetForWidgetViewModel<DistrictsSetJournalFilterViewModel, DistrictsSetJournalFilterView>()
 				.RegisterWidgetForWidgetViewModel<DistrictJournalFilterViewModel, DistrictJournalFilterView>()
 				.RegisterWidgetForWidgetViewModel<SelectableParameterReportFilterViewModel, SelectableParameterReportFilterView>()

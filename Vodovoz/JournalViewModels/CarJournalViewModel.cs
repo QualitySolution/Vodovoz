@@ -5,25 +5,36 @@ using NHibernate.Criterion;
 using NHibernate.Dialect.Function;
 using NHibernate.Transform;
 using QS.DomainModel.UoW;
+using QS.Project.Domain;
 using QS.Project.Journal;
 using QS.Services;
 using Vodovoz.CommonEnums;
 using Vodovoz.Domain.Employees;
 using Vodovoz.Domain.Logistic;
+using Vodovoz.EntityRepositories.Logistic;
 using Vodovoz.Filters.ViewModels;
 using Vodovoz.JournalNodes;
+using Vodovoz.ViewModels.ViewModels.Logistic;
 
 namespace Vodovoz.JournalViewModels
 {
-	public class CarJournalViewModel : FilterableSingleEntityJournalViewModelBase<Car, CarsDlg, CarJournalNode, CarJournalFilterViewModel>
+	public class CarJournalViewModel : FilterableSingleEntityJournalViewModelBase<Car, CarViewModel, CarJournalNode, CarJournalFilterViewModel>
 	{
-		public CarJournalViewModel(CarJournalFilterViewModel filterViewModel, IUnitOfWorkFactory unitOfWorkFactory, ICommonServices commonServices) : base(filterViewModel, unitOfWorkFactory, commonServices)
+		private readonly ICarRepository _carRepository;
+
+		public CarJournalViewModel(
+			CarJournalFilterViewModel filterViewModel,
+			IUnitOfWorkFactory unitOfWorkFactory,
+			ICommonServices commonServices,
+			ICarRepository carRepository)
+			: base(filterViewModel, unitOfWorkFactory, commonServices)
 		{
 			TabName = "Журнал автомобилей";
 			UpdateOnChanges(
 				typeof(Car),
 				typeof(Employee)
 			);
+			_carRepository = carRepository;
 		}
 
 		protected override Func<IUnitOfWork, IQueryOver<Car>> ItemsSourceQueryFunction => (uow) => {
@@ -101,8 +112,17 @@ namespace Vodovoz.JournalViewModels
 			return result;
 		};
 
-		protected override Func<CarsDlg> CreateDialogFunction => () => new CarsDlg();
+		protected override Func<CarViewModel> CreateDialogFunction => () => new CarViewModel(
+			   EntityUoWBuilder.ForCreate(),
+			   UnitOfWorkFactory,
+			   commonServices,
+			   _carRepository
+		   );
 
-		protected override Func<CarJournalNode, CarsDlg> OpenDialogFunction => (node) => new CarsDlg(node.Id);
+		protected override Func<CarJournalNode, CarViewModel> OpenDialogFunction => (node) => new CarViewModel(
+			   EntityUoWBuilder.ForOpen(node.Id),
+			   UnitOfWorkFactory,
+			   commonServices,
+			   _carRepository);
 	}
 }

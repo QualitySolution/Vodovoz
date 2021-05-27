@@ -446,8 +446,9 @@ public partial class MainWindow : Gtk.Window
 
     protected void OnActionCarsActivated(object sender, EventArgs e)
     {
-        CarJournalFilterViewModel filter = new CarJournalFilterViewModel();
-        var carJournal = new CarJournalViewModel(filter, UnitOfWorkFactory.GetDefaultFactory, ServicesConfig.CommonServices);
+        var filter = new CarJournalFilterViewModel();
+		var carRepository = new CarRepository();
+        var carJournal = new CarJournalViewModel( filter, UnitOfWorkFactory.GetDefaultFactory, ServicesConfig.CommonServices, carRepository);
         tdiMain.AddTab(carJournal);
     }
 

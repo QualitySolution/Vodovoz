@@ -1619,6 +1619,8 @@
     <Compile Include="gtk-gui\Vodovoz.Filters.GtkViews.OrganizationCashTransferDocumentFilterView.cs" />
     <Compile Include="ReportsParameters\Employees\EmployeesReport.cs" />
     <Compile Include="gtk-gui\Vodovoz.ReportsParameters.Employees.EmployeesReport.cs" />
+    <Compile Include="Views\Logistic\CarView.cs" />
+    <Compile Include="gtk-gui\Vodovoz.Views.Logistic.CarView.cs" />
     <Compile Include="ReportsParameters\Logistic\AddressesOverpaymentsReport.cs" />
     <Compile Include="gtk-gui\Vodovoz.ReportsParameters.Logistic.AddressesOverpaymentsReport.cs" />
     <Compile Include="Views\Reports\CarsExploitationReportView.cs" />
