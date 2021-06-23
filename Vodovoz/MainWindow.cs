@@ -2128,7 +2128,7 @@ public partial class MainWindow : Gtk.Window
 					filter.SetFilterSensitivity(false);
 					filter.CanChangeRaskat = true;
 					return new CarJournalViewModel(filter, UnitOfWorkFactory.GetDefaultFactory,
-						ServicesConfig.CommonServices);
+						ServicesConfig.CommonServices, new CarRepository());
 				}
 			);
 
