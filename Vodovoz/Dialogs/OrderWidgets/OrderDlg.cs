@@ -31,9 +31,12 @@ using QSWidgetLib;
 using RdlEngine;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data.Bindings.Collections.Generic;
 using System.IO;
 using System.Linq;
+using QS.Navigation;
+using QS.Utilities.Text;
 using Vodovoz.Core;
 using Vodovoz.Core.DataService;
 using Vodovoz.Dialogs;
@@ -81,7 +84,9 @@ using IOrganizationProvider = Vodovoz.Models.IOrganizationProvider;
 
 namespace Vodovoz
 {
-    public partial class OrderDlg : EntityDialogBase<Order>,
+    public partial class OrderDlg : TdiTabBase,
+	    ITdiDialog,
+	    ISingleUoWDialog,
 		ICounterpartyInfoProvider,
 		IDeliveryPointInfoProvider,
 		IContractInfoProvider,
@@ -96,7 +101,9 @@ namespace Vodovoz
 
 		public event EventHandler<CurrentObjectChangedArgs> CurrentObjectChanged;
 
-		Order templateOrder;
+		private Order templateOrder;
+		public Order Entity { get; }
+		public IUnitOfWork UoW { get; }
 
 		private IOrganizationProvider organizationProvider;
 		private ICounterpartyContractRepository counterpartyContractRepository;
@@ -107,6 +114,7 @@ namespace Vodovoz
 		private readonly IUserRepository userRepository = UserSingletonRepository.GetInstance();
 		private readonly DateTime date = new DateTime(2020, 11, 09, 11, 0, 0);
 		private bool isEditOrderClicked;
+		private readonly bool _createdFromUndelivery;
 
 		private IEmployeeRepository employeeRepository { get; set; } = EmployeeSingletonRepository.GetInstance();
 		private IOrderRepository orderRepository { get; set;} = OrderSingletonRepository.GetInstance();
@@ -207,19 +215,150 @@ namespace Vodovoz
         private bool? isForRetail = null;
 
 		#endregion
+		
+		#region Реализация EntityDialogBase
+		
+		public override bool CompareHashName(string hashName)
+		{
+			if (Entity == null || UoW == null || UoW.IsNew)
+				return false;
+			return GenerateHashName(Entity.Id) == hashName;
+		}
+
+		private static string GenerateHashName(int id)
+		{
+			return DialogHelper.GenerateDialogHashName(typeof(Order), id);
+		}
+
+		public static string GenerateHashName(Order entity)
+		{
+			return DialogHelper.GenerateDialogHashName(typeof(Order), entity.Id);
+		}
+
+		public static string GenerateHashName()
+		{
+			return DialogHelper.GenerateDialogHashName(typeof(Order), 0);
+		}
+
+		protected void OnEntitySaved(bool tabClosed = false)
+		{
+			EntitySaved?.Invoke(this, new EntitySavedEventArgs(Entity, tabClosed));
+		}
+
+		public void SaveAndClose()
+		{
+			if (!HasChanges || Save())
+			{
+				OnEntitySaved(true);
+				OnCloseTab(false, CloseSource.Save);
+			}
+		}
+
+		private bool _manualChange = false;
+		public bool HasChanges
+		{
+			get => _manualChange || UoW.HasChanges;
+			set => _manualChange = value;
+		}
+		
+        public event EventHandler<EntitySavedEventArgs> EntitySaved;
+        
+		private string _tabName = string.Empty;
+		public override string TabName {
+			get {
+				if (!string.IsNullOrWhiteSpace (_tabName))
+					return _tabName;
+				if (UoW != null && Entity != null) {
+					var att = typeof(Order).GetCustomAttributes (typeof (AppellativeAttribute), true);
+					var subAtt = (att.FirstOrDefault () as AppellativeAttribute);
+
+					if (UoW.IsNew) {
+						if (subAtt != null && !String.IsNullOrWhiteSpace (subAtt.Nominative)) {
+							switch (subAtt.Gender) {
+							case GrammaticalGender.Masculine:
+								return "Новый " + subAtt.Nominative;
+							default:
+								return "Новый(ая) " + subAtt.Nominative;
+							}
+						}
+					} else {
+						var notifySubject = Entity as INotifyPropertyChanged;
+
+						var prop = Entity.GetType().GetProperty ("Title");
+						if (prop != null) {
+							if (notifySubject != null) {
+								notifySubject.PropertyChanged -= Subject_TitlePropertyChanged;
+								notifySubject.PropertyChanged += Subject_TitlePropertyChanged;
+							}
+							return prop.GetValue(Entity, null).ToString();
+						}
+
+						prop = Entity.GetType ().GetProperty ("Name");
+						if (prop != null) {
+							if (notifySubject != null) {
+								notifySubject.PropertyChanged -= Subject_NamePropertyChanged;
+								notifySubject.PropertyChanged += Subject_NamePropertyChanged;
+							}
+							return prop.GetValue (Entity, null).ToString ();
+						}
+
+						if (subAtt != null && !String.IsNullOrWhiteSpace (subAtt.Nominative))
+							return subAtt.Nominative.StringToTitleCase();
+					}
+					return Entity.ToString ();
+				}
+				return string.Empty;
+			}
+			protected set {
+				if (_tabName == value)
+					return;
+				_tabName = value;
+				OnTabNameChanged();
+			}
+		}
+		
+		private void Subject_NamePropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == "Name")
+				OnTabNameChanged();
+		}
+
+		private void Subject_TitlePropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == "Title")
+				OnTabNameChanged();
+		}
+		
+		protected override void OnTabNameChanged()
+		{
+			base.OnTabNameChanged();
+
+			if(UoW?.ActionTitle != null)
+				UoW.ActionTitle.UserActionTitle = $"Диалог '{TabName}'";
+		}
+		
+        #endregion
 
 		#region Конструкторы, настройка диалога
 
 		public override void Destroy()
 		{
 			NotifyConfiguration.Instance.UnsubscribeAll(this);
+			if(!_createdFromUndelivery)
+			{
+				UoW?.Dispose();
+			}
 			base.Destroy();
 		}
 
-		public OrderDlg()
+		public OrderDlg(IUnitOfWork uow = null)
 		{
 			this.Build();
-			UoWGeneric = UnitOfWorkFactory.CreateWithNewRoot<Order>();
+			UoW = uow ?? UnitOfWorkFactory.CreateWithoutRoot();
+			_createdFromUndelivery = uow != null;
+			if(Entity == null)
+				Entity = new Order();
+			Entity.UoW = UoW;
 			Entity.Author = employeeRepository.GetEmployeeForCurrentUser(UoW);
 			if(Entity.Author == null) {
 				MessageDialogHelper.RunErrorDialog("Ваш пользователь не привязан к действующему сотруднику, вы не можете создавать заказы, так как некого указывать в качестве автора документа.");
@@ -241,8 +380,9 @@ namespace Vodovoz
 		public OrderDlg(int id)
 		{
 			this.Build();
-			UoWGeneric = UnitOfWorkFactory.CreateForRoot<Order>(id);
-			IsForRetail = UoWGeneric.Root.Client.IsForRetail;
+			UoW = UnitOfWorkFactory.CreateWithoutRoot();
+			Entity = UoW.GetById<Order>(id);
+			IsForRetail = Entity.Client.IsForRetail;
 			ConfigureDlg();
 		}
 
@@ -340,6 +480,9 @@ namespace Vodovoz
 
 		public void ConfigureDlg()
 		{
+			buttonSave.Clicked += OnButtonSaveClicked;
+			buttonCancel.Clicked += OnButtonCancelClicked;
+
 			var orderOrganizationProviderFactory = new OrderOrganizationProviderFactory();
 			organizationProvider = orderOrganizationProviderFactory.CreateOrderOrganizationProvider();
 			counterpartyContractRepository = new CounterpartyContractRepository(organizationProvider);
@@ -362,8 +505,7 @@ namespace Vodovoz
 				|| Entity.OrderStatus == OrderStatus.Canceled
 				|| Entity.OrderStatus == OrderStatus.Closed
 				|| Entity.SelfDelivery && Entity.OrderStatus == OrderStatus.OnLoading;
-
-			orderEquipmentItemsView.Configure(UoWGeneric, Entity, new NomenclatureParametersProvider());
+			orderEquipmentItemsView.Configure(UoW, Entity, new NomenclatureParametersProvider());
 			orderEquipmentItemsView.OnDeleteEquipment += OrderEquipmentItemsView_OnDeleteEquipment;
 
 			//Подписывемся на изменения листов для засеривания клиента
@@ -500,8 +642,6 @@ namespace Vodovoz
 
 			referenceDeliverySchedule.SubjectType = typeof(DeliverySchedule);
 
-			commentsview4.UoW = UoWGeneric;
-			
 			enumAddRentButton.ItemsEnum = typeof(RentType);
 			enumAddRentButton.EnumItemClicked += (sender, e) => AddRent((RentType)e.ItemEnum);
 
@@ -526,7 +666,7 @@ namespace Vodovoz
 
 			dataSumDifferenceReason.Binding.AddBinding(Entity, s => s.SumDifferenceReason, w => w.Text).InitializeFromSource();
 			dataSumDifferenceReason.Completion = new EntryCompletion {
-				Model = GetListStoreSumDifferenceReasons(UoWGeneric),
+				Model = GetListStoreSumDifferenceReasons(UoW),
 				TextColumn = 0
 			};
 
@@ -560,7 +700,7 @@ namespace Vodovoz
 			ShowOrderColumnInDocumentsList();
 
 			SetSensitivityOfPaymentType();
-			depositrefunditemsview.Configure(UoWGeneric, Entity);
+			depositrefunditemsview.Configure(UoW, Entity);
 			ycomboboxReason.SetRenderTextFunc<DiscountReason>(x => x.Name);
 			ycomboboxReason.ItemsList = UoW.Session.QueryOver<DiscountReason>().List();
 
@@ -971,8 +1111,8 @@ namespace Vodovoz
 
 		bool SaveOrderBeforeContinue<T>()
 		{
-			if(UoWGeneric.IsNew) {
-				if(CommonDialogs.SaveBeforeCreateSlaveEntity(EntityObject.GetType(), typeof(T))) {
+			if(UoW.IsNew) {
+				if(CommonDialogs.SaveBeforeCreateSlaveEntity(Entity.GetType(), typeof(T))) {
 					if(!Save())
 						return false;
 				} else
@@ -996,7 +1136,7 @@ namespace Vodovoz
 			buttonCancel.Sensitive = isSensetive;
 		}
 
-		public override bool Save()
+		public bool Save()
 		{
 			try {
 				SetSensetivity(false);
@@ -1036,11 +1176,11 @@ namespace Vodovoz
 							return false;
 						}
 					}
-					Entity.SaveEntity(UoWGeneric);
+					Entity.SaveEntity(UoW, _createdFromUndelivery);
 					if(sendEmail)
 						SendBillByEmail(emailAddressForBill);
 				} else {
-					Entity.SaveEntity(UoWGeneric);
+					Entity.SaveEntity(UoW, _createdFromUndelivery);
 				}
 				logger.Info("Ok.");
 				UpdateUIState();
@@ -1048,6 +1188,16 @@ namespace Vodovoz
 			} finally {
 				SetSensetivity(true);
 			}
+		}
+
+		private void OnButtonSaveClicked(object sender, EventArgs e)
+		{
+			SaveAndClose();
+		}
+
+		private void OnButtonCancelClicked(object sender, EventArgs e)
+		{
+			OnCloseTab(true, CloseSource.Cancel);
 		}
 
 		protected void OnBtnSaveCommentClicked(object sender, EventArgs e)
@@ -1245,7 +1395,7 @@ namespace Vodovoz
 
 			TabParent.OpenTab(
 				TdiTabBase.GenerateHashName<AddExistingDocumentsDlg>(),
-				() => new AddExistingDocumentsDlg(UoWGeneric, Entity.Client)
+				() => new AddExistingDocumentsDlg(UoW, Entity)
 			);
 		}
 
@@ -1271,8 +1421,8 @@ namespace Vodovoz
 				string whatToPrint = rdlDocs.ToList().Count > 1
 											? "документов"
 											: "документа \"" + rdlDocs.Cast<OrderDocument>().First().Type.GetEnumTitle() + "\"";
-				if(UoWGeneric.HasChanges && CommonDialogs.SaveBeforePrint(typeof(Order), whatToPrint))
-					UoWGeneric.Save();
+				if(UoW.HasChanges && CommonDialogs.SaveBeforePrint(typeof(Order), whatToPrint))
+					UoW.Save(Entity);
 				rdlDocs.ForEach(
 					doc => {
 						if(doc is IPrintableRDLDocument)
@@ -1436,10 +1586,10 @@ namespace Vodovoz
 				return;
 			OrmReference SelectDialog = new OrmReference(
 				typeof(ServiceClaim),
-				UoWGeneric,
+				UoW,
 				ServiceClaimRepository
 					.GetDoneClaimsForClient(Entity)
-					.GetExecutableQueryOver(UoWGeneric.Session)
+					.GetExecutableQueryOver(UoW.Session)
 					.RootCriteria
 			) {
 				Mode = OrmReferenceMode.Select,
@@ -1469,7 +1619,7 @@ namespace Vodovoz
 		protected void OnButtonOpenServiceClaimClicked(object sender, EventArgs e)
 		{
 			var claim = treeServiceClaim.GetSelectedObject<ServiceClaim>();
-			OpenTab(
+			OpenTab<ITdiTab, string, Func<ServiceClaimDlg>>(
 				EntityDialogBase<ServiceClaim>.GenerateHashName(claim.Id),
 				() => new ServiceClaimDlg(claim)
 			);
@@ -1535,7 +1685,7 @@ namespace Vodovoz
 				var selectedNode = ea.SelectedNodes.FirstOrDefault();
 				if(selectedNode == null)
 					return;
-				TryAddNomenclature(UoWGeneric.Session.Get<Nomenclature>(selectedNode.Id));
+				TryAddNomenclature(UoW.Session.Get<Nomenclature>(selectedNode.Id));
 			};
 			this.TabParent.AddSlaveTab(this, journalViewModel);
 		}
@@ -1575,7 +1725,7 @@ namespace Vodovoz
 				var selectedNode = ea.SelectedNodes.FirstOrDefault();
 				if(selectedNode == null)
 					return;
-				TryAddNomenclature(UoWGeneric.Session.Get<Nomenclature>(selectedNode.Id));
+				TryAddNomenclature(UoW.Session.Get<Nomenclature>(selectedNode.Id));
 			};
 			this.TabParent.AddSlaveTab(this, journalViewModel);
 		}
@@ -1666,7 +1816,7 @@ namespace Vodovoz
 			if(!CanAddNomenclaturesToOrder())
 				return;
 
-			var nomenclatureFilter = new NomenclatureRepFilter(UoWGeneric);
+			var nomenclatureFilter = new NomenclatureRepFilter(UoW);
 			nomenclatureFilter.SetAndRefilterAtOnce(
 				x => x.AvailableCategories = Nomenclature.GetCategoriesForGoods(),
 				x => x.DefaultSelectedCategory = NomenclatureCategory.equipment
@@ -1686,12 +1836,12 @@ namespace Vodovoz
 			if(selectedId == 0) {
 				return;
 			}
-			AddNomenclatureToClient(UoWGeneric.Session.Get<Nomenclature>(selectedId));
+			AddNomenclatureToClient(UoW.Session.Get<Nomenclature>(selectedId));
 		}
 
 		void AddNomenclatureToClient(Nomenclature nomenclature)
 		{
-			Entity.AddEquipmentNomenclatureToClient(nomenclature, UoWGeneric);
+			Entity.AddEquipmentNomenclatureToClient(nomenclature, UoW);
 		}
 
 		protected void OnButtonAddEquipmentFromClientClicked(object sender, EventArgs e)
@@ -1699,7 +1849,7 @@ namespace Vodovoz
 			if(!CanAddNomenclaturesToOrder())
 				return;
 
-			var nomenclatureFilter = new NomenclatureRepFilter(UoWGeneric);
+			var nomenclatureFilter = new NomenclatureRepFilter(UoW);
 			nomenclatureFilter.SetAndRefilterAtOnce(
 				x => x.AvailableCategories = Nomenclature.GetCategoriesForGoods(),
 				x => x.DefaultSelectedCategory = NomenclatureCategory.equipment
@@ -1719,12 +1869,12 @@ namespace Vodovoz
 			if(selectedId == 0) {
 				return;
 			}
-			AddNomenclatureFromClient(UoWGeneric.Session.Get<Nomenclature>(selectedId));
+			AddNomenclatureFromClient(UoW.Session.Get<Nomenclature>(selectedId));
 		}
 
 		void AddNomenclatureFromClient(Nomenclature nomenclature)
 		{
-			Entity.AddEquipmentNomenclatureFromClient(nomenclature, UoWGeneric);
+			Entity.AddEquipmentNomenclatureFromClient(nomenclature, UoW);
 		}
 
 		public void FillOrderItems(Order order)
@@ -1739,7 +1889,7 @@ namespace Vodovoz
 			foreach(OrderItem orderItem in order.OrderItems) {
 				switch(orderItem.Nomenclature.Category) {
 					case NomenclatureCategory.additional:
-						Entity.AddNomenclatureForSaleFromPreviousOrder(orderItem, UoWGeneric);
+						Entity.AddNomenclatureForSaleFromPreviousOrder(orderItem, UoW);
 						continue;
 					case NomenclatureCategory.water:
 						TryAddNomenclature(orderItem.Nomenclature, orderItem.Count);
@@ -1897,7 +2047,7 @@ namespace Vodovoz
 
 		protected void OnButtonFillCommentClicked(object sender, EventArgs e)
 		{
-			OrmReference SelectDialog = new OrmReference(typeof(CommentTemplate), UoWGeneric) {
+			OrmReference SelectDialog = new OrmReference(typeof(CommentTemplate), UoW) {
 				Mode = OrmReferenceMode.Select,
 				ButtonMode = ReferenceButtonMode.CanAdd
 			};
@@ -1976,8 +2126,8 @@ namespace Vodovoz
 				string whatToPrint = allList.Count > 1
 					? "документов"
 					: "документа \"" + allList.First().Type.GetEnumTitle() + "\"";
-				if(UoWGeneric.HasChanges && CommonDialogs.SaveBeforePrint(typeof(Order), whatToPrint))
-					UoWGeneric.Save();
+				if(UoW.HasChanges && CommonDialogs.SaveBeforePrint(typeof(Order), whatToPrint))
+					UoW.Save(Entity);
 
 				var selectedPrintableRDLDocuments = treeDocuments.GetSelectedObjects().OfType<PrintableOrderDocument>()
 					.Where(doc => doc.PrintType == PrinterType.RDL).ToList();

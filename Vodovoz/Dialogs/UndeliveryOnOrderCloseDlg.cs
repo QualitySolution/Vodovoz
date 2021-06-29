@@ -76,6 +76,10 @@ namespace Vodovoz.Dialogs
 
 		protected void OnButtonCancelClicked(object sender, EventArgs e)
 		{
+			if (undelivery.NewOrder != null)
+			{
+				UoW.Delete<Order>(undelivery.NewOrder);
+			}
 			OnCloseTab(true);
 		}
 	}

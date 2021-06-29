@@ -4,7 +4,6 @@ using System.Linq;
 using Gamma.ColumnConfig;
 using NHibernate.Transform;
 using QS.DomainModel.UoW;
-using QSOrmProject;
 using QSOrmProject.RepresentationModel;
 using Vodovoz.Dialogs;
 using Vodovoz.Domain.Client;
@@ -16,39 +15,37 @@ namespace Vodovoz.ViewWidgets
 	[System.ComponentModel.ToolboxItem(true)]
 	public partial class CommentsView : QS.Dialog.Gtk.WidgetOnDialogBase
 	{
-		private IUnitOfWork uow;
-
-		public IUnitOfWork UoW {
-			get {
-				return uow;
-			}
-			set {
-				if(uow == value)
-					return;
-				uow = value;
-				viewModel = new CommentsVM(value);
-				ytreeComments.RepresentationModel = viewModel;
-				ytreeComments.RepresentationModel.UpdateNodes();
-			}
-		}
-
-		CommentsVM viewModel;
+		private CommentsVM _viewModel;
 
 		public CommentsView()
 		{
 			this.Build();
 		}
+		
+		public void Configure(IUnitOfWork uow)
+		{
+			_viewModel = new CommentsVM(uow);
+			ytreeComments.RepresentationModel = _viewModel;
+			ytreeComments.RepresentationModel.UpdateNodes();
+		}
 
-		public IList<CommentsVMNode> Items { get { return viewModel.ItemsList as IList<CommentsVMNode>; } }
+		public void Configure(IUnitOfWork uow, Order order)
+		{
+			_viewModel = new CommentsVM(uow, order);
+			ytreeComments.RepresentationModel = _viewModel;
+			ytreeComments.RepresentationModel.UpdateNodes();
+		}
+
+		public IList<CommentsVMNode> Items { get { return _viewModel.ItemsList as IList<CommentsVMNode>; } }
 
 		protected void OnButtonAddClicked(object sender, EventArgs e)
 		{
-			MyTab.TabParent.AddTab(new NuanceDlg(UoW.RootObject), MyTab);
+			MyTab.TabParent.AddTab(new NuanceDlg(_viewModel.Order), MyTab);
 		}
 
 		protected void OnButtonEditClicked(object sender, EventArgs e)
 		{
-			MyTab.TabParent.AddTab(new NuanceDlg(UoW.RootObject, ytreeComments.GetSelectedId()), MyTab);
+			MyTab.TabParent.AddTab(new NuanceDlg(_viewModel.Order, ytreeComments.GetSelectedId()), MyTab);
 		}
 
 		protected void OnYtreeCommentsCursorChanged(object sender, EventArgs e)
@@ -62,10 +59,14 @@ namespace Vodovoz.ViewWidgets
 
 	public class CommentsVM : RepresentationModelWithoutEntityBase<CommentsVMNode>
 	{
-		public CommentsVM() : this(UnitOfWorkFactory.CreateWithoutRoot())
-		{
-		}
+		public Order Order { get; }
 
+		public CommentsVM(IUnitOfWork uow, Order order) : base(typeof(Comments))
+		{
+			this.UoW = uow;
+			Order = order;
+		}
+		
 		public CommentsVM(IUnitOfWork uow) : base(typeof(Comments))
 		{
 			this.UoW = uow;
@@ -82,9 +83,7 @@ namespace Vodovoz.ViewWidgets
 			DeliveryPoint deliveryPointAlias = null;
 
 
-
-			var UowCounterparty = UoW.RootObject as Counterparty;
-			if(UowCounterparty != null) {
+			if(UoW.RootObject is Counterparty UowCounterparty) {
 
 				var orderBottles = UoW.Session.QueryOver<Comments>(() => commentAlias)
 							 .JoinAlias(() => commentAlias.Author, () => commentsAuthorAlias, NHibernate.SqlCommand.JoinType.LeftOuterJoin)
@@ -109,8 +108,7 @@ namespace Vodovoz.ViewWidgets
 				SetItemsSource(orderBottles.ToList());
 			}
 
-			var UowDeliveryPoint = UoW.RootObject as DeliveryPoint;
-			if(UowDeliveryPoint != null) {
+			if(UoW.RootObject is DeliveryPoint UowDeliveryPoint) {
 				var orderBottles = UoW.Session.QueryOver<Comments>(() => commentAlias)
 							 .JoinAlias(() => commentAlias.Author, () => commentsAuthorAlias, NHibernate.SqlCommand.JoinType.LeftOuterJoin)
 							 .JoinAlias(() => commentAlias.CommentsGroups, () => commentsGroupsAlias, NHibernate.SqlCommand.JoinType.LeftOuterJoin)
@@ -134,7 +132,7 @@ namespace Vodovoz.ViewWidgets
 				SetItemsSource(orderBottles.ToList());
 			}
 
-			var UowOrder = UoW.RootObject as Order;
+			var UowOrder = Order;
 			if(UowOrder != null) {
 
 				var orderBottles = UoW.Session.QueryOver<Comments>(() => commentAlias)
@@ -194,13 +192,3 @@ namespace Vodovoz.ViewWidgets
 		public bool IsFixed { get; set; }
 	}
 }
-
-
-
-//ITdiTab mytab = DialogHelper.FindParentTab(this);
-//if(mytab == null)
-//return;
-// использование WidgetOnDialogBase вместо Gtk позволяет не писать код выше, а сразу обращаться через this к окну
-//MyOrmDialog.UoW
-
-
