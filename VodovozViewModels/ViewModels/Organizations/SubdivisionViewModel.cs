@@ -6,6 +6,7 @@ using QS.Project.Domain;
 using QS.Project.Journal.EntitySelector;
 using QS.Services;
 using QS.ViewModels;
+using Vodovoz.Domain.Permissions.Warehouse;
 using Vodovoz.Domain.Sale;
 using Vodovoz.EntityRepositories.Permissions;
 using Vodovoz.ViewModels.Permissions;
@@ -32,7 +33,17 @@ namespace Vodovoz.ViewModels.ViewModels.Organizations
 			}
 		}
 
-		public SubdivisionViewModel(
+        private WarehousePermissionsViewModel warehousePermissionsVm;
+        public WarehousePermissionsViewModel WarehousePermissionsVM
+        {
+            get => warehousePermissionsVm;
+            set
+            {
+	            SetField(ref warehousePermissionsVm, value);
+            }
+        }
+
+        public SubdivisionViewModel(
 			IEntityUoWBuilder uoWBuilder,
 			IUnitOfWorkFactory unitOfWorkFactory,
 			ICommonServices commonServices,
@@ -41,6 +52,9 @@ namespace Vodovoz.ViewModels.ViewModels.Organizations
 		) : base(uoWBuilder, unitOfWorkFactory, commonServices)
 		{
 			PresetSubdivisionPermissionVM = new PresetSubdivisionPermissionsViewModel(UoW, permissionRepository, Entity);
+			var _warehousePermissionModel = new SubdivisionWarehousePermissionModel(UoW, Entity);
+			WarehousePermissionsVM = new WarehousePermissionsViewModel(UoW, _warehousePermissionModel);
+			WarehousePermissionsVM.CanEdit = PermissionResult.CanUpdate;
 			EmployeeSelectorFactory = employeeSelectorFactory ?? throw new ArgumentNullException(nameof(employeeSelectorFactory));
 			ConfigureEntityChangingRelations();
 			CreateCommands();
@@ -59,6 +73,8 @@ namespace Vodovoz.ViewModels.ViewModels.Organizations
 			Entity.ObservableChildSubdivisions.ElementAdded += (aList, aIdx) => OnPropertyChanged(() => GeographicGroupVisible);
 			Entity.ObservableChildSubdivisions.ElementRemoved += (aList, aIdx, aObject) => OnPropertyChanged(() => GeographicGroupVisible);
 		}
+
+		public override bool HasChanges => true;
 
 		public override bool Save(bool close)
 		{

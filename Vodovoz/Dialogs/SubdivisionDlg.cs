@@ -14,6 +14,8 @@ using System;
 using Vodovoz.ViewWidgets.Permissions;
 using Vodovoz.ViewModels.Permissions;
 using Vodovoz.EntityRepositories.Permissions;
+using Vodovoz.Views.Permissions;
+using Vodovoz.Domain.Permissions.Warehouse;
 
 namespace Vodovoz
 {
@@ -23,6 +25,7 @@ namespace Vodovoz
 		private static Logger logger = LogManager.GetCurrentClassLogger();
 		SubdivisionsVM subdivisionsVM;
 		PresetSubdivisionPermissionsViewModel presetPermissionVM;
+        WarehousePermissionsViewModel warehousePermissionsViewModel;
 
 		[Obsolete("Использовать Vodovoz.Views.Organization.SubdivisionView")]
 		public SubdivisionDlg()
@@ -54,8 +57,7 @@ namespace Vodovoz
 			yentryrefParentSubdivision.Binding.AddBinding(Entity, e => e.ParentSubdivision, w => w.Subject).InitializeFromSource();
 			yentryreferenceChief.RepresentationModel = new EmployeesVM();
 			yentryreferenceChief.Binding.AddBinding(Entity, e => e.Chief, w => w.Subject).InitializeFromSource();
-
-			yenumcomboType.ItemsEnum = typeof(SubdivisionType);
+            yenumcomboType.ItemsEnum = typeof(SubdivisionType);
 			yenumcomboType.Binding.AddBinding(Entity, e => e.SubdivisionType, w => w.SelectedItem).InitializeFromSource();
 			yenumcomboType.Sensitive = false;
 
@@ -72,7 +74,7 @@ namespace Vodovoz
 				.AddColumn("Документ").AddTextRenderer(x => x.CustomName)
 				.Finish();
 			ytreeviewDocuments.ItemsDataSource = Entity.ObservableDocumentTypes;
-
+			
 			lblWarehouses.LineWrapMode = Pango.WrapMode.Word;
 			if(Entity.Id > 0)
 				lblWarehouses.Text = Entity.GetWarehousesNames(UoW);
@@ -98,18 +100,20 @@ namespace Vodovoz
 					s.GeographicGroup = Entity.GeographicGroup;
 				}
 		}
+		public override bool HasChanges => true;
 
 		#region implemented abstract members of OrmGtkDialogBase
 
 		public override bool Save()
 		{
 			var valid = new QSValidator<Subdivision>(UoWGeneric.Root);
-			if(valid.RunDlgIfNotValid((Gtk.Window)this.Toplevel))
+			if(valid.RunDlgIfNotValid())
 				return false;
 
 			UoWGeneric.Save();
-			subdivisionentitypermissionwidget.ViewModel.SavePermissions(UoW);
-			presetPermissionVM.SaveCommand.Execute();
+			subdivisionentitypermissionwidget?.ViewModel.SavePermissions(UoW);
+			presetPermissionVM?.SaveCommand.Execute();
+			warehousePermissionsViewModel?.SaveWarehousePermissions();
 			UoW.Commit();
 			return true;
 		}
@@ -142,5 +146,32 @@ namespace Vodovoz
 			lblGeographicGroup.Visible = ySpecCmbGeographicGroup.Visible
 				= Entity.ParentSubdivision != null && Entity.ChildSubdivisions.Any();
 		}
+
+        protected void OnNotebook1SwitchPage(object o, Gtk.SwitchPageArgs args)
+        {
+	        if (args.PageNum == 3)
+	        {
+		        if(vboxPresetPermissions.Children.Length < 1) {
+			        presetPermissionVM =
+				        new PresetSubdivisionPermissionsViewModel(UoW, new PermissionRepository(), Entity);
+			        vboxPresetPermissions.Add(new PresetPermissionsView(presetPermissionVM));
+			        vboxPresetPermissions.ShowAll();
+			        vboxPresetPermissions.Visible = QSMain.User.Admin;
+		        }
+	        }
+
+	        if (args.PageNum == 4)
+	        {
+		        if (vboxSubdivision.Children.Length < 1)
+		        {
+					var _warehousePermissionModel = new SubdivisionWarehousePermissionModel(UoW, Entity);
+			        warehousePermissionsViewModel = new WarehousePermissionsViewModel(UoW, _warehousePermissionModel);
+			        warehousePermissionsViewModel.CanEdit = permissionResult.CanUpdate;
+					vboxSubdivision.Add(new WarehousePermissionView(warehousePermissionsViewModel));
+			        vboxSubdivision.ShowAll();
+			        vboxSubdivision.Visible = QSMain.User.Admin;
+		        }
+	        }
+        }
 	}
 }

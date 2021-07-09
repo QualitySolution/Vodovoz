@@ -47,6 +47,8 @@
     <Compile Include="Dialogs\Fuel\FuelTransferDocumentViewModel.cs" />
     <Compile Include="Dialogs\Fuel\FuelTypeViewModel.cs" />
     <Compile Include="Dialogs\Fuel\FuelWriteoffDocumentViewModel.cs" />
+    <Compile Include="Infrastructure\Services\WarehousePermissionValidator.cs" />
+    <Compile Include="Infrastructure\Services\WarehousePermissionValidatorFactory.cs" />
     <Compile Include="Journals\FilterViewModels\CashRequestJournalFilterViewModel.cs" />
     <Compile Include="Journals\FilterViewModels\Employees\PremiumJournalFilterViewModel.cs" />
     <Compile Include="Journals\FilterViewModels\Enums\LevelsFilter.cs" />
@@ -110,6 +112,7 @@
     <Compile Include="Journals\JournalViewModels\Logistic\CarEventTypeJournalViewModel.cs" />
     <Compile Include="Journals\JournalViewModels\Logistic\CarEventJournalViewModel.cs" />
     <Compile Include="Journals\JournalViewModels\MovementWagonJournalViewModel.cs" />
+    <Compile Include="Journals\JournalViewModels\Users\UsersJournalViewModel.cs" />
     <Compile Include="Journals\JournalViewModels\Orders\DiscountReasonJournalViewModel.cs" />
     <Compile Include="TempAdapters\IPremiumTemplateJournalFactory.cs" />
     <Compile Include="ViewModels\Cash\OrganizationCashTransferDocumentViewModel.cs" />
@@ -169,6 +172,12 @@
     <Compile Include="TempAdapters\IReportViewOpener.cs" />
     <Compile Include="ViewModels\Complaints\ComplaintFilesViewModel.cs" />
     <Compile Include="TempAdapters\IGtkTabsOpenerForRouteListViewAndOrderView.cs" />
+    <Compile Include="ViewModels\PermissionNode\PermissionTypeAllNodeViewModel.cs" />
+    <Compile Include="ViewModels\PermissionNode\SelectAllNodePermissionViewModel.cs" />
+    <Compile Include="ViewModels\PermissionNode\WarehouseAllNodeViewModel.cs" />
+    <Compile Include="ViewModels\PermissionNode\WarehousePermissionAllNodeViewModelBase.cs" />
+    <Compile Include="ViewModels\PermissionNode\WarehousePermissionNodeViewModel.cs" />
+    <Compile Include="ViewModels\Permissions\WarehousePermissionsViewModel.cs" />
     <Compile Include="ViewModels\Proposal\ApplicationDevelopmentProposalViewModel.cs" />
     <Compile Include="ViewModels\Reports\DeliveryAnalytics\DeliveryAnalyticsReportNode.cs" />
     <Compile Include="ViewModels\Reports\DeliveryAnalytics\GeographicGroupNode.cs" />
@@ -200,10 +209,6 @@
     <Compile Include="ViewModels\Warehouses\IncomingInvoiceViewModel.cs" />
     <Compile Include="ViewModels\Warehouses\MovementDocumentViewModel.cs" />
     <Compile Include="Infrastructure\Services\IWarehousePermissionService.cs" />
-    <Compile Include="Infrastructure\Permissions\IWarehousePermissionValidator.cs" />
-    <Compile Include="Infrastructure\Permissions\WarehousePermissions.cs" />
-    <Compile Include="Infrastructure\Permissions\WarehousePermissionValidator.cs" />
-    <Compile Include="Infrastructure\Permissions\IWarehousePermissionValidatorFactory.cs" />
     <Compile Include="Infrastructure\Services\WarehousePermissionService.cs" />
     <Compile Include="TempAdapters\INomenclatureSelectorFactory.cs" />
     <Compile Include="VodovozViewModelAssemblyFinder.cs" />
@@ -265,8 +270,7 @@
     <Compile Include="Journals\JournalViewModels\HistoryTrace\HistoryTracePropertyJournalViewModel.cs" />
     <Compile Include="Journals\JournalViewModels\HistoryTrace\HistoryTraceObjectJournalViewModel.cs" />
     <Compile Include="Journals\FilterViewModels\Employees\UserJournalFilterViewModel.cs" />
-    <Compile Include="Journals\JournalViewModels\Employees\UserJournalViewModel.cs" />
-    <Compile Include="ViewModels\Users\UserViewModel.cs" />
+    <Compile Include="Journals\JournalViewModels\Employees\SelectUserJournalViewModel.cs" />
     <Compile Include="Journals\JournalNodes\UserJournalNode.cs" />
     <Compile Include="ViewModels\Counterparty\CounterpartyFilesViewModel.cs" />
     <Compile Include="Journals\JournalNodes\EmployeePostJournalNode.cs" />
@@ -277,9 +281,11 @@
     <Compile Include="ViewModels\Warehouses\WarehouseViewModel.cs" />
     <Compile Include="ViewModels\Reports\CarsExploitationReportViewModel.cs" />
     <Compile Include="ViewModels\Reports\DeliveryAnalyticsViewModel.cs" />
+    <Compile Include="Dialogs\Users\UserViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Infrastructure\Export" />
+    <Folder Include="Infrastructure\Permissions" />
     <Folder Include="ViewModels\" />
     <Folder Include="ViewModels\Complaints\" />
     <Folder Include="ViewModels\Employees\" />
@@ -288,28 +294,7 @@
     <Folder Include="TempAdapters\" />
     <Folder Include="Infrastructure\InfoProviders\" />
     <Folder Include="ViewModels\Organization\" />
-    <Folder Include="ViewModels\Payments" />
-    <Folder Include="ViewModels\WageCalculation\" />
-    <Folder Include="ViewModels\WageCalculation\AdvancedWageParametersViewModels\" />
-    <Folder Include="ViewModels\Warehouses\" />
-    <Folder Include="Infrastructure\Permissions\" />
-    <Folder Include="Infrastructure\Print\" />
-    <Folder Include="ViewModels\Contacts\" />
-    <Folder Include="ViewModels\Users\" />
-    <Folder Include="ViewModels\Permissions\" />
-    <Folder Include="Infrastructure\Report\" />
-    <Folder Include="Infrastructure\Report\SelectableParametersFilter\" />
-    <Folder Include="ViewModels\Reports\" />
-    <Folder Include="ViewModels\Logistic\" />
-    <Folder Include="Journals\" />
-    <Folder Include="Journals\JournalViewModels\" />
-    <Folder Include="Journals\JournalNodes\" />
-    <Folder Include="Journals\FilterViewModels\" />
-    <Folder Include="Journals\Nodes\" />
-    <Folder Include="Journals\Nodes\Cash\" />
-    <Folder Include="ViewModels\Goods\" />
     <Folder Include="ViewModels\Payments\" />
-    <Folder Include="ViewModels\Counterparty\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\GMap.NET\GMap.NET.Core\GMap.NET.Core.csproj">

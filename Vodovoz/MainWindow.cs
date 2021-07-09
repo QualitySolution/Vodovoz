@@ -126,6 +126,8 @@ using Vodovoz.EntityRepositories.WageCalculation;
 using Vodovoz.ViewModels.ViewModels.Logistic;
 using Vodovoz.ViewModels.ViewModels.Orders;
 using Vodovoz.ViewModels.ViewModels.Reports;
+using Vodovoz.ViewModels.Journals.JournalViewModels.Users;
+using Vodovoz.EntityRepositories.Permissions;
 
 public partial class MainWindow : Gtk.Window
 {
@@ -178,7 +180,8 @@ public partial class MainWindow : Gtk.Window
             ActionRouteListTracking.Sensitive =
             ActionRouteListMileageCheck.Sensitive =
             ActionRouteListAddressesTransferring.Sensitive = ServicesConfig.CommonServices.CurrentPermissionService.ValidatePresetPermission("logistican");
-        ActionStock.Sensitive = CurrentPermissions.Warehouse.Allowed().Any();
+        CurrentPermissions permissions = new CurrentPermissions();
+        ActionStock.Sensitive = permissions.Warehouse.Any();
 
         bool hasAccessToCRM = ServicesConfig.CommonServices.CurrentPermissionService.ValidatePresetPermission("access_to_crm");
         bool hasAccessToSalaries = ServicesConfig.CommonServices.CurrentPermissionService.ValidatePresetPermission("access_to_salaries");
@@ -1442,11 +1445,9 @@ public partial class MainWindow : Gtk.Window
 
     protected void OnActionUsersActivated(object sender, EventArgs e)
     {
-        UsersDialog usersDlg = new UsersDialog(ServicesConfig.InteractiveService);
-        usersDlg.Show();
-        usersDlg.Run();
-        usersDlg.Destroy();
-    }
+		var journal = new UsersJournalViewModel(UnitOfWorkFactory.GetDefaultFactory, new PermissionRepository(), ServicesConfig.CommonServices);
+		tdiMain.AddTab(journal);
+	}
 
     protected void OnActionGeographicGroupsActivated(object sender, EventArgs e)
     {
@@ -1995,8 +1996,9 @@ public partial class MainWindow : Gtk.Window
             new RegisteredRMJournalViewModel(
                 new RegisteredRMJournalFilterViewModel(),
                 UnitOfWorkFactory.GetDefaultFactory,
-                ServicesConfig.CommonServices
-            )
+				new PermissionRepository(),
+				ServicesConfig.CommonServices
+			)
         );
     }
 
