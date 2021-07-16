@@ -1,0 +1,17 @@
+﻿version: '3.4'
+
+services:
+  rabbitmq3:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_ERLANG_COOKIE: 'secret cookie here'
+    volumes: 
+     - ./db-data:/var/lib/rabbitmq
+    ports: 
+     - 15672:15672
+
+  emailsendingworkerservice:
+    image: ${DOCKER_REGISTRY-}emailsendingworkerservice
+    build:
+      context: .
+      dockerfile: ../\Workers/EmailSendingWorkerService/Dockerfile
