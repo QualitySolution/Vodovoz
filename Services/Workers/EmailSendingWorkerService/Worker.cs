@@ -3,6 +3,7 @@ using Mailjet.Client.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.MailSending;
@@ -23,7 +24,7 @@ namespace EmailSendingWorkerService
 		private readonly IModel _channel;
 		private readonly IMailjetClient _mailjetClient;
 		private readonly string _mailSendingQueueId;
-		private readonly EventingBasicConsumer _consumer;
+		private readonly AsyncEventingBasicConsumer _consumer;
 		private readonly bool _sandboxMode; 
 
 		public Worker(ILogger<Worker> logger, IConfiguration configuration, IModel channel, IMailjetClient mailjetClient)
@@ -38,27 +39,30 @@ namespace EmailSendingWorkerService
 			_channel = channel ?? throw new ArgumentNullException(nameof(channel));
 			_mailjetClient = mailjetClient ?? throw new ArgumentNullException(nameof(mailjetClient));
 			_channel.QueueDeclare(_mailSendingQueueId, true, false, false, null);
-			_consumer = new EventingBasicConsumer(_channel);
+			_consumer = new AsyncEventingBasicConsumer(_channel);
 			_consumer.Received += MessageRecieved;
 			_sandboxMode = configuration.GetSection(_mailjetConfigurationSection).GetValue("Sandbox", true);
 		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
-			_logger.LogInformation("Running Email Send Worker...");
-
-			while(!stoppingToken.IsCancellationRequested)
-			{
-				var someResponse = _channel.BasicConsume(_mailSendingQueueId, false, _consumer);
-				_logger.LogInformation($"Some response after consume: { someResponse }");
-				_logger.LogInformation("Stepped after consume");
-				await Task.Delay(1000, stoppingToken);
-			}
-
-			_logger.LogInformation("Stopping Email Send Worker...");
+			_channel.BasicConsume(_mailSendingQueueId, false, _consumer);
+			await Task.Delay(0, stoppingToken);
 		}
 
-		private void MessageRecieved(object sender, BasicDeliverEventArgs e)
+		public override Task StartAsync(CancellationToken cancellationToken)
+		{
+			_logger.LogInformation("Starting Email Send Worker...");
+			return base.StartAsync(cancellationToken);
+		}
+
+		public override Task StopAsync(CancellationToken cancellationToken)
+		{
+			_logger.LogInformation("Stopping Email Send Worker...");
+			return base.StopAsync(cancellationToken);
+		}
+
+		private async Task MessageRecieved(object sender, BasicDeliverEventArgs e)
 		{
 			try
 			{
@@ -72,18 +76,52 @@ namespace EmailSendingWorkerService
 				var maijetRequest = new MailjetRequest
 				{
 					Resource = Send.Resource
-				};
+				}
+					.Property(Send.Messages, new JArray
+					{
+						new JObject
+						{
+							{ "From", new JObject
+								{
+									{ "Name", message.From.Name },
+									{ "Email", message.From.Email }
+								}
+							},
+							{ "To", new JArray
+								{
+									new JObject
+									{
+										{ "Name", message.To.Name },
+										{ "Email", message.To.Email }
+									}
+								}
+							},
+							{ "Subject", message.Subject },
+							{ "TextPart", message.TextPart },
+							{ "HTMLPart", message.HTMLPart },
+							{ "EventPayload", message.EventPayload.ToString() }
+						}
+					})
+					.Property(Send.SandboxMode, _sandboxMode);
 
-				maijetRequest.Property(Send.SandboxMode, _sandboxMode);
-				maijetRequest.Property(Send.Messages, new [] { message } );
+				var response = await _mailjetClient.PostAsync(maijetRequest);
 
-				_mailjetClient.PostAsync(maijetRequest);
+				if(!response.IsSuccessStatusCode)
+				{
+					_channel.BasicPublish("", _mailSendingQueueId, null, body);
+					_channel.BasicAck(e.DeliveryTag, false);
+					throw new ResponseNotSuccededException(response.GetErrorInfo());
+				}
 
 				_channel.BasicAck(e.DeliveryTag, false);
 			}
+			catch(ResponseNotSuccededException ex)
+			{
+				_logger.LogError(ex.Message);
+			}
 			catch(Exception ex)
 			{
-				
+				_logger.LogError(ex.Message);
 			}
 		}
 	}

@@ -16,3 +16,5 @@ services:
     build:
       context: .
       dockerfile: ../\Workers/EmailSendingWorkerService/Dockerfile
+    links:
+      - "rabbitmq3:rabbit"

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQInfrastructure;
+using System;
 
 namespace EmailSendingWorkerService
 {
@@ -27,7 +28,7 @@ namespace EmailSendingWorkerService
 						var mailjetConfiguration = configuration.GetSection("Mailjet");
 						var userId = mailjetConfiguration.GetValue<string>("UserId");
 						var userKey = mailjetConfiguration.GetValue<string>("UserKey");
-						return new MailjetClient(userId, userKey);
+						return new MailjetClient(userId, userKey) { Version = ApiVersion.V3_1 /*, BaseAdress = ""*/ };
 					});
 
 					services.AddScoped<IConnectionFactory>((sp) => sp.GetRequiredService<RabbitMQConnectionFactoryFactory>().CreateConnectionFactory());

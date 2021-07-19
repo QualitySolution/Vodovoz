@@ -11,6 +11,6 @@ namespace RabbitMQ.MailSending
 		public string HTMLPart { get; set; }
 		public IEnumerable<EmailAttachment> Attachments { get; set; }
 		public IEnumerable<InlinedEmailAttachment> InlinedAttachments { get; set; }
-		public string EventPayload { get; set; }
+		public EmailPayload EventPayload { get; set; }
 	}
 }

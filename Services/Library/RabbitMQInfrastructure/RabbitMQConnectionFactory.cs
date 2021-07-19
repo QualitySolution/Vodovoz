@@ -31,10 +31,15 @@ namespace RabbitMQInfrastructure
 				{
 					connection = _connectionFactory.CreateConnection();
 				}
-				catch(BrokerUnreachableException)
+				catch(BrokerUnreachableException ex)
 				{
+					if(ex.InnerException is AuthenticationFailureException authException)
+					{
+						_logger.LogInformation("RabbitMQ credentials is wrong...");
+						throw;
+					}
 					_logger.LogInformation("RabbitMQ instance is unreacheable...");
-					Task.Delay(1000).Wait();
+					Task.Delay(5000).Wait();
 					continue;
 				}
 

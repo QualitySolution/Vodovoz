@@ -21,7 +21,8 @@ namespace RabbitMQInfrastructure
 				HostName = section.GetValue<string>("Hostname"),
 				UserName = section.GetValue<string>("Username"),
 				Password = section.GetValue<string>("Password"),
-				VirtualHost = section.GetValue<string>("VirtualHost")
+				VirtualHost = section.GetValue<string>("VirtualHost"),
+				DispatchConsumersAsync = true
 			};
 		}
 	}
