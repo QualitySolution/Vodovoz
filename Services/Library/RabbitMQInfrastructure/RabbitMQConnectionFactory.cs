@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using System;
@@ -9,12 +10,24 @@ namespace RabbitMQInfrastructure
 	public class RabbitMQConnectionFactory
 	{
 		private readonly ILogger<RabbitMQConnectionFactory> _logger;
+		private readonly IConfiguration _configuration;
 		private readonly IConnectionFactory _connectionFactory;
 
-		public RabbitMQConnectionFactory(ILogger<RabbitMQConnectionFactory> logger, IConnectionFactory connectionFactory)
+		public RabbitMQConnectionFactory(ILogger<RabbitMQConnectionFactory> logger, IConfiguration configuration)
 		{
-			_logger = logger;
-			_connectionFactory = connectionFactory;
+			_configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+			var section = _configuration.GetSection("MessageBroker");
+
+			_connectionFactory=  new ConnectionFactory
+			{
+				HostName = section.GetValue<string>("Hostname"),
+				UserName = section.GetValue<string>("Username"),
+				Password = section.GetValue<string>("Password"),
+				VirtualHost = section.GetValue<string>("VirtualHost"),
+				DispatchConsumersAsync = true
+			};
 		}
 
 		public IConnection CreateConnection()

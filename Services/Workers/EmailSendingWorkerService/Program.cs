@@ -19,8 +19,16 @@ namespace EmailSendingWorkerService
 			Host.CreateDefaultBuilder(args)
 				.ConfigureServices((hostContext, services) =>
 				{
-					services.AddScoped<RabbitMQConnectionFactoryFactory>();
 					services.AddScoped<RabbitMQConnectionFactory>();
+
+					services.AddScoped<IConnection>((sp) => sp.GetRequiredService<RabbitMQConnectionFactory>().CreateConnection());
+
+					services.AddScoped<IModel>((sp) =>
+					{
+						var channel = sp.GetRequiredService<IConnection>().CreateModel();
+						channel.BasicQos(0, 1, false);
+						return channel;
+					});
 
 					services.AddScoped<IMailjetClient>((sp) =>
 					{
@@ -29,16 +37,6 @@ namespace EmailSendingWorkerService
 						var userId = mailjetConfiguration.GetValue<string>("UserId");
 						var userKey = mailjetConfiguration.GetValue<string>("UserKey");
 						return new MailjetClient(userId, userKey) { Version = ApiVersion.V3_1 /*, BaseAdress = ""*/ };
-					});
-
-					services.AddScoped<IConnectionFactory>((sp) => sp.GetRequiredService<RabbitMQConnectionFactoryFactory>().CreateConnectionFactory());
-					services.AddScoped<IConnection>((sp) => sp.GetRequiredService<RabbitMQConnectionFactory>().CreateConnection());
-
-					services.AddScoped<IModel>((sp) =>
-					{
-						var channel = sp.GetRequiredService<IConnection>().CreateModel();
-						channel.BasicQos(0, 1, false);
-						return channel;
 					});
 
 					services.AddHostedService<Worker>();
