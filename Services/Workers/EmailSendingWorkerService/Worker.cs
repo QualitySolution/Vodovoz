@@ -20,12 +20,13 @@ namespace EmailSendingWorkerService
 		private const string _mailjetConfigurationSection = "Mailjet";
 		private const string _queuesConfigurationSection = "Queues";
 
+		private readonly string _mailSendingQueueId;
+		private readonly bool _sandboxMode;
+
 		private readonly ILogger<Worker> _logger;
 		private readonly IModel _channel;
 		private readonly IMailjetClient _mailjetClient;
-		private readonly string _mailSendingQueueId;
 		private readonly AsyncEventingBasicConsumer _consumer;
-		private readonly bool _sandboxMode; 
 
 		public Worker(ILogger<Worker> logger, IConfiguration configuration, IModel channel, IMailjetClient mailjetClient)
 		{
@@ -35,12 +36,13 @@ namespace EmailSendingWorkerService
 			}
 
 			_logger = logger ?? throw new ArgumentNullException(nameof(logger));
-			_mailSendingQueueId = configuration.GetSection(_queuesConfigurationSection).GetValue<string>("MailSendingQueue");
 			_channel = channel ?? throw new ArgumentNullException(nameof(channel));
-			_mailjetClient = mailjetClient ?? throw new ArgumentNullException(nameof(mailjetClient));
+			_mailSendingQueueId = configuration.GetSection(_queuesConfigurationSection)
+				.GetValue<string>("MailSendingQueue");
 			_channel.QueueDeclare(_mailSendingQueueId, true, false, false, null);
 			_consumer = new AsyncEventingBasicConsumer(_channel);
 			_consumer.Received += MessageRecieved;
+			_mailjetClient = mailjetClient ?? throw new ArgumentNullException(nameof(mailjetClient));
 			_sandboxMode = configuration.GetSection(_mailjetConfigurationSection).GetValue("Sandbox", true);
 		}
 
@@ -73,38 +75,7 @@ namespace EmailSendingWorkerService
 				_logger.LogInformation($"Recieved message to send to recipient: { message.To.Email }" +
 					$" with subject: \"{ message.Subject }\", with { message.Attachments?.Count() ?? 0 } attachments");
 
-				var maijetRequest = new MailjetRequest
-				{
-					Resource = Send.Resource
-				}
-					.Property(Send.Messages, new JArray
-					{
-						new JObject
-						{
-							{ "From", new JObject
-								{
-									{ "Name", message.From.Name },
-									{ "Email", message.From.Email }
-								}
-							},
-							{ "To", new JArray
-								{
-									new JObject
-									{
-										{ "Name", message.To.Name },
-										{ "Email", message.To.Email }
-									}
-								}
-							},
-							{ "Subject", message.Subject },
-							{ "TextPart", message.TextPart },
-							{ "HTMLPart", message.HTMLPart },
-							{ "EventPayload", message.EventPayload.ToString() }
-						}
-					})
-					.Property(Send.SandboxMode, _sandboxMode);
-
-				var response = await _mailjetClient.PostAsync(maijetRequest);
+				var response = await _mailjetClient.PostAsync(prepareMailjetRequest(message));
 
 				if(!response.IsSuccessStatusCode)
 				{
@@ -122,7 +93,44 @@ namespace EmailSendingWorkerService
 			catch(Exception ex)
 			{
 				_logger.LogError(ex.Message);
+				throw;
 			}
+		}
+
+		private MailjetRequest prepareMailjetRequest(SendEmailMessage message)
+		{
+			var maijetRequest = new MailjetRequest
+			{
+				Resource = Send.Resource
+			}
+			.Property(Send.Messages, new JArray
+			{
+				new JObject
+				{
+					{ "From", new JObject
+						{
+							{ "Name", message.From.Name },
+							{ "Email", message.From.Email }
+						}
+					},
+					{ "To", new JArray
+						{
+							new JObject
+							{
+								{ "Name", message.To.Name },
+								{ "Email", message.To.Email }
+							}
+						}
+					},
+					{ "Subject", message.Subject },
+					{ "TextPart", message.TextPart },
+					{ "HTMLPart", message.HTMLPart },
+					{ "EventPayload", message.EventPayload.ToString() }
+				}
+			})
+			.Property(Send.SandboxMode, _sandboxMode);
+
+			return maijetRequest;
 		}
 	}
 }

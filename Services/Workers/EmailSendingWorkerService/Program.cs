@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
 using RabbitMQInfrastructure;
-using System;
 
 namespace EmailSendingWorkerService
 {
