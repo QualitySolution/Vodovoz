@@ -18,3 +18,11 @@ services:
       dockerfile: ../\Workers/EmailSendingWorkerService/Dockerfile
     links:
       - "rabbitmq3:rabbit"
+
+  storedemailstatusupdateworker:
+    image: ${DOCKER_REGISTRY-}storedemailstatusupdateworker
+    build:
+      context: .
+      dockerfile: ../Workers/StoredEmailStatusUpdateWorker/Dockerfile
+    links:
+      - "rabbitmq3:rabbit"
