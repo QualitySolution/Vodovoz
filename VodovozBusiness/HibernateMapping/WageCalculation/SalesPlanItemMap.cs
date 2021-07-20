@@ -20,7 +20,7 @@ namespace Vodovoz.HibernateMapping.WageCalculation
 
 
 
-		public class EquipmentKindSalesPlanMap : SubclassMap<EquipmentKindItemSalesPlan>
+		public class EquipmentKindSalesPlanMap : SubclassMap<EquipmentKindSalesPlanItem>
 		{
 			public EquipmentKindSalesPlanMap()
 			{
@@ -30,7 +30,7 @@ namespace Vodovoz.HibernateMapping.WageCalculation
 			}
 		}
 
-		public class EquipmentTypeSalesPlanMap : SubclassMap<EquipmentTypeItemSalesPlan>
+		public class EquipmentTypeSalesPlanMap : SubclassMap<EquipmentTypeSalesPlanItem>
 		{
 			public EquipmentTypeSalesPlanMap()
 			{
@@ -40,7 +40,7 @@ namespace Vodovoz.HibernateMapping.WageCalculation
 			}
 		}
 
-		public class NomenclatureItemSalesPlanMap : SubclassMap<NomenclatureItemSalesPlan>
+		public class NomenclatureItemSalesPlanMap : SubclassMap<NomenclatureSalesPlanItem>
 		{
 			public NomenclatureItemSalesPlanMap()
 			{

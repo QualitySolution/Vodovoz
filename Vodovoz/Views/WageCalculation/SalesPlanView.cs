@@ -26,34 +26,37 @@ namespace Vodovoz.Views.WageCalculation
 			entryFullBottlesToSell.Binding.AddBinding(ViewModel.Entity, e => e.FullBottleToSell, w => w.ValueAsInt).InitializeFromSource();
 			entryEmptyBottlesToTake.Binding.AddBinding(ViewModel.Entity, e => e.EmptyBottlesToTake, w => w.ValueAsInt).InitializeFromSource();
 
-			ybuttonAddNomenclature.Clicked += (sender, e) => { ViewModel.AddNomenclatureCommand.Execute(); };
-
-			//ytreeviewNomenclatureSalesPlan.ColumnsConfig = FluentColumnsConfig<Nomenclature>.Create()
-			//	.AddColumn("Подразделение").AddTextRenderer(x => x.Name)
-			//	.Finish();
-			ytreeviewNomenclatureSalesPlan.ColumnsConfig = FluentColumnsConfig<NomenclatureItemSalesPlan>.Create()
+			ytreeviewNomenclatureSalesPlan.ColumnsConfig = FluentColumnsConfig<NomenclatureSalesPlanItem>.Create()
 				.AddColumn("Номенклатура").AddTextRenderer(x => x.Nomenclature != null ?x.Nomenclature.Name:"")
 				.Finish();
 			ytreeviewNomenclatureSalesPlan.ItemsDataSource = ViewModel.Entity.ObservableNomenclatureItemSalesPlans;
 			ytreeviewNomenclatureSalesPlan.HeadersVisible = false;
 
-			ytreeviewEquipmentTypeSalesPlan.ColumnsConfig = FluentColumnsConfig<EquipmentTypeItemSalesPlan>.Create()
-				.AddColumn("Тип").AddTextRenderer(x => x.EquipmentType !=null? x.EquipmentType.GetEnumTitle():"")
-				.Finish();
-			ytreeviewEquipmentTypeSalesPlan.ItemsDataSource = ViewModel.Entity.ObservableEquipmentTypeItemSalesPlans;
-			ytreeviewEquipmentTypeSalesPlan.HeadersVisible = false;
+			ybuttonAddNomenclature.Clicked += (sender, e) => ViewModel.AddNomenclatureItemCommand.Execute();
+			ybuttonDeleteNomenclature.Clicked += (sender, e) =>
+				ViewModel.RemoveNomenclatureItemCommand.Execute(ytreeviewNomenclatureSalesPlan.GetSelectedObject<NomenclatureSalesPlanItem>());
 
-			ytreeviewEquipmentKindSalesPlan.ColumnsConfig = FluentColumnsConfig<EquipmentKindItemSalesPlan>.Create()
+			ytreeviewEquipmentKindSalesPlan.ColumnsConfig = FluentColumnsConfig<EquipmentKindSalesPlanItem>.Create()
 				.AddColumn("Вид").AddTextRenderer(x => x.EquipmentKind != null ? x.EquipmentKind.Name : "")
 				.Finish();
 			ytreeviewEquipmentKindSalesPlan.ItemsDataSource = ViewModel.Entity.ObservableEquipmentKindItemSalesPlans;
 			ytreeviewEquipmentKindSalesPlan.HeadersVisible = false;
 
+			ybuttonAddEquipmentKind.Clicked += (sender, e) => ViewModel.AddEquipmentKindItemCommand.Execute();
+			ybuttonDeleteEquipmentKind.Clicked += (sender, e) => 
+				ViewModel.RemoveEquipmentKindItemCommand.Execute(ytreeviewEquipmentKindSalesPlan.GetSelectedObject<EquipmentKindSalesPlanItem>());
+
+			ytreeviewEquipmentTypeSalesPlan.ColumnsConfig = FluentColumnsConfig<EquipmentTypeSalesPlanItem>.Create()
+				.AddColumn("Тип").AddTextRenderer(x => x.EquipmentType != null ? x.EquipmentType.GetEnumTitle() : "")
+				.Finish();
+			ytreeviewEquipmentTypeSalesPlan.ItemsDataSource = ViewModel.Entity.ObservableEquipmentTypeItemSalesPlans;
+			ytreeviewEquipmentTypeSalesPlan.HeadersVisible = false;
+
 			ybuttonAddEquipmentType.Clicked += (sender, e) => ShowAttachmentForEquipmentType(true);
-
-			ybuttonSaveEquipmentType.Clicked += (sender, e) => { ViewModel.AddEquipmentTypeCommand.Execute(); };
+			ybuttonDeleteEquipmentType.Clicked += (sender, e) =>
+				ViewModel.RemoveEquipmentTypeItemCommand.Execute(ytreeviewEquipmentTypeSalesPlan.GetSelectedObject<EquipmentTypeSalesPlanItem>());
+			ybuttonSaveEquipmentType.Clicked += (sender, e) => { ViewModel.AddEquipmentTypeItemCommand.Execute(); };
 			ybuttonCancelEquipmentType.Clicked += (sender, e) => ShowAttachmentForEquipmentType(false);
-
 
 			yspeccomboboxEquipmentType.Binding.AddSource(ViewModel) 
 				.AddBinding( vm => vm.EquipmentTypes, w => w.ItemsList)

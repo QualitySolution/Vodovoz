@@ -21,15 +21,15 @@ namespace Vodovoz.Domain.WageCalculation
 	public class SalesPlan : PropertyChangedBase, IDomainObject, IValidatableObject
 	{
 		//private IList<Nomenclature> _nomenclatures = new List<Nomenclature>();
-		private IList<NomenclatureItemSalesPlan> _nomenclatureItemSalesPlans = new List<NomenclatureItemSalesPlan>();
-		private IList<EquipmentKindItemSalesPlan> _equipmentKindItemSalesPlans = new List<EquipmentKindItemSalesPlan>();
+		private IList<NomenclatureSalesPlanItem> _nomenclatureItemSalesPlans = new List<NomenclatureSalesPlanItem>();
+		private IList<EquipmentKindSalesPlanItem> _equipmentKindItemSalesPlans = new List<EquipmentKindSalesPlanItem>();
 		//private IList<EquipmentType> _equipmentTypes = new List<EquipmentType>();
-		private IList<EquipmentTypeItemSalesPlan> _equipmentTypeItemSalesPlans = new List<EquipmentTypeItemSalesPlan>();
+		private IList<EquipmentTypeSalesPlanItem> _equipmentTypeItemSalesPlans = new List<EquipmentTypeSalesPlanItem>();
 		//private GenericObservableList<Nomenclature> _observableNomenclatures;
-		private GenericObservableList<NomenclatureItemSalesPlan> _observableNomenclatureItemSalesPlan;
-		private GenericObservableList<EquipmentKindItemSalesPlan> _observableEquipmentKindItemSalesPlans;
+		private GenericObservableList<NomenclatureSalesPlanItem> _observableNomenclatureItemSalesPlan;
+		private GenericObservableList<EquipmentKindSalesPlanItem> _observableEquipmentKindItemSalesPlans;
 		//private GenericObservableList<EquipmentType> _observableEquipmentTypes;
-		private GenericObservableList<EquipmentTypeItemSalesPlan> _observableEquipmentTypeItemSalesPlans;
+		private GenericObservableList<EquipmentTypeSalesPlanItem> _observableEquipmentTypeItemSalesPlans;
 		public virtual int Id { get; set; }
 
 		string name;
@@ -79,14 +79,14 @@ namespace Vodovoz.Domain.WageCalculation
 		//}
 
 		[Display(Name = "Номенклатуры")]
-		public virtual IList<NomenclatureItemSalesPlan> NomenclatureItemSalesPlans
+		public virtual IList<NomenclatureSalesPlanItem> NomenclatureItemSalesPlans
 		{
 			get => _nomenclatureItemSalesPlans;
 			set => SetField(ref _nomenclatureItemSalesPlans, value);
 		}
 
 		[Display(Name = "Виды оборудования")]
-		public virtual IList<EquipmentKindItemSalesPlan> EquipmentKindItemSalesPlans
+		public virtual IList<EquipmentKindSalesPlanItem> EquipmentKindItemSalesPlans
 		{
 			get => _equipmentKindItemSalesPlans;
 			set => SetField(ref _equipmentKindItemSalesPlans, value);
@@ -100,7 +100,7 @@ namespace Vodovoz.Domain.WageCalculation
 		//}
 
 		[Display(Name = "Типы оборудования")]
-		public virtual IList<EquipmentTypeItemSalesPlan> EquipmentTypeItemSalesPlans
+		public virtual IList<EquipmentTypeSalesPlanItem> EquipmentTypeItemSalesPlans
 		{
 			get => _equipmentTypeItemSalesPlans;
 			set => SetField(ref _equipmentTypeItemSalesPlans, value);
@@ -108,53 +108,69 @@ namespace Vodovoz.Domain.WageCalculation
 
 		//FIXME Кослыль пока не разберемся как научить hibernate работать с обновляемыми списками.
 
-		public virtual GenericObservableList<NomenclatureItemSalesPlan> ObservableNomenclatureItemSalesPlans => 
+		public virtual GenericObservableList<NomenclatureSalesPlanItem> ObservableNomenclatureItemSalesPlans => 
 			_observableNomenclatureItemSalesPlan ?? 
-			(_observableNomenclatureItemSalesPlan = new GenericObservableList<NomenclatureItemSalesPlan>(NomenclatureItemSalesPlans));
-		public virtual GenericObservableList<EquipmentKindItemSalesPlan> ObservableEquipmentKindItemSalesPlans => 
-			_observableEquipmentKindItemSalesPlans ?? (_observableEquipmentKindItemSalesPlans = new GenericObservableList<EquipmentKindItemSalesPlan>(EquipmentKindItemSalesPlans));
-		public virtual GenericObservableList<EquipmentTypeItemSalesPlan> ObservableEquipmentTypeItemSalesPlans =>
-			_observableEquipmentTypeItemSalesPlans ?? (_observableEquipmentTypeItemSalesPlans = new GenericObservableList<EquipmentTypeItemSalesPlan>(EquipmentTypeItemSalesPlans));
+			(_observableNomenclatureItemSalesPlan = new GenericObservableList<NomenclatureSalesPlanItem>(NomenclatureItemSalesPlans));
+		public virtual GenericObservableList<EquipmentKindSalesPlanItem> ObservableEquipmentKindItemSalesPlans => 
+			_observableEquipmentKindItemSalesPlans ?? (_observableEquipmentKindItemSalesPlans = new GenericObservableList<EquipmentKindSalesPlanItem>(EquipmentKindItemSalesPlans));
+		public virtual GenericObservableList<EquipmentTypeSalesPlanItem> ObservableEquipmentTypeItemSalesPlans =>
+			_observableEquipmentTypeItemSalesPlans ?? (_observableEquipmentTypeItemSalesPlans = new GenericObservableList<EquipmentTypeSalesPlanItem>(EquipmentTypeItemSalesPlans));
 
-		//public virtual void AddNomenclature(Nomenclature nomenclature)
-		//{
-		//	if(ObservableNomenclatures.Contains(nomenclature))
-		//	{
-		//		return;
-		//	}
-
-		//	ObservableNomenclatures.Add(nomenclature);
-		//}
-
-		public virtual void AddNomenclature(NomenclatureItemSalesPlan nomenclature)
+		public virtual void AddNomenclatureItem(NomenclatureSalesPlanItem nomenclatureSalesPlanItem)
 		{
-			if(ObservableNomenclatureItemSalesPlans.Contains(nomenclature))
+			if(ObservableNomenclatureItemSalesPlans.Contains(nomenclatureSalesPlanItem))
 			{
 				return;
 			}
 
-			ObservableNomenclatureItemSalesPlans.Add(nomenclature);
+			ObservableNomenclatureItemSalesPlans.Add(nomenclatureSalesPlanItem);
 		}
 
-		public virtual void AddEquipmentKind(EquipmentKindItemSalesPlan equipmentKindItemSalesPlan)
+		public virtual void RemoveNomenclatureItem(NomenclatureSalesPlanItem nomenclatureSalesPlanItem)
 		{
-			if(ObservableEquipmentKindItemSalesPlans.Contains(equipmentKindItemSalesPlan))
+			if(ObservableNomenclatureItemSalesPlans.Contains(nomenclatureSalesPlanItem))
+			{
+				ObservableNomenclatureItemSalesPlans.Remove(nomenclatureSalesPlanItem);
+			}
+		}
+
+		public virtual void AddEquipmentKind(EquipmentKindSalesPlanItem equipmentKindSalesPlanItem)
+		{
+			if(ObservableEquipmentKindItemSalesPlans.Contains(equipmentKindSalesPlanItem))
 			{
 				return;
 			}
 
-			ObservableEquipmentKindItemSalesPlans.Add(equipmentKindItemSalesPlan);
+			ObservableEquipmentKindItemSalesPlans.Add(equipmentKindSalesPlanItem);
 		}
 
-		public virtual void AddEquipmentType(EquipmentTypeItemSalesPlan equipmentTypeItemSalesPlan)
+		public virtual void RemoveEquipmentKindItem(EquipmentKindSalesPlanItem equipmentKindSalesPlanItem)
 		{
-			if(ObservableEquipmentTypeItemSalesPlans.Contains(equipmentTypeItemSalesPlan))
+			if(ObservableEquipmentKindItemSalesPlans.Contains(equipmentKindSalesPlanItem))
+			{
+				ObservableEquipmentKindItemSalesPlans.Remove(equipmentKindSalesPlanItem);
+			}
+		}
+
+		public virtual void AddEquipmentType(EquipmentTypeSalesPlanItem equipmentTypeSalesPlanItem)
+		{
+			if(ObservableEquipmentTypeItemSalesPlans.Contains(equipmentTypeSalesPlanItem))
 			{
 				return;
 			}
 
-			ObservableEquipmentTypeItemSalesPlans.Add(equipmentTypeItemSalesPlan);
+			ObservableEquipmentTypeItemSalesPlans.Add(equipmentTypeSalesPlanItem);
 		}
+
+		public virtual void RemoveEquipmentTypeItem(EquipmentTypeSalesPlanItem equipmentTypeSalesPlanItem)
+		{
+			if(ObservableEquipmentTypeItemSalesPlans.Contains(equipmentTypeSalesPlanItem))
+			{
+				ObservableEquipmentTypeItemSalesPlans.Remove(equipmentTypeSalesPlanItem);
+			}
+		}
+
+
 
 		#region IValidatableObject implementation
 
