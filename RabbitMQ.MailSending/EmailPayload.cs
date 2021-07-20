@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace RabbitMQ.MailSending
+﻿namespace RabbitMQ.MailSending
 {
 	public class EmailPayload
 	{
 		public int Id { get; set; }
 		public bool Trackable { get; set; }
+		public string InstanceId { get; set; }
 	}
 }
