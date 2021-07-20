@@ -18,18 +18,18 @@ namespace EmailSendingWorkerService
 			Host.CreateDefaultBuilder(args)
 				.ConfigureServices((hostContext, services) =>
 				{
-					services.AddScoped<RabbitMQConnectionFactory>();
+					services.AddTransient<RabbitMQConnectionFactory>();
 
-					services.AddScoped<IConnection>((sp) => sp.GetRequiredService<RabbitMQConnectionFactory>().CreateConnection());
+					services.AddTransient<IConnection>((sp) => sp.GetRequiredService<RabbitMQConnectionFactory>().CreateConnection());
 
-					services.AddScoped<IModel>((sp) =>
+					services.AddTransient<IModel>((sp) =>
 					{
 						var channel = sp.GetRequiredService<IConnection>().CreateModel();
 						channel.BasicQos(0, 1, false);
 						return channel;
 					});
 
-					services.AddScoped<IMailjetClient>((sp) =>
+					services.AddTransient<IMailjetClient>((sp) =>
 					{
 						var configuration = sp.GetRequiredService<IConfiguration>();
 						var mailjetConfiguration = configuration.GetSection("Mailjet");
