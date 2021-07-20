@@ -12,6 +12,7 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Vodovoz.Domain.StoredEmails;
 using Vodovoz.EntityRepositories;
 
 namespace StoredEmailStatusUpdateWorker
@@ -115,13 +116,11 @@ namespace StoredEmailStatusUpdateWorker
 
 						if(storedEmail != null)
 						{
-							_logger.LogInformation($"Found Email: {storedEmail.Id}, externalId {storedEmail.ExternalId}, status {storedEmail.State}");
+							_logger.LogInformation($"Found Email: { storedEmail.Id }, externalId { storedEmail.ExternalId }, status { storedEmail.State }");
 
 							if(storedEmail.StateChangeDate < message.RecievedAt)
 							{
-								var newState = Enum.Parse<Vodovoz.Domain.StoredEmails.StoredEmailStates>(message.Status);
-
-								storedEmail.State = newState;
+								storedEmail.State = ConvertFromMailjetStatus(message.Status);
 								storedEmail.StateChangeDate = message.RecievedAt;
 
 								unitOfWork.Save(storedEmail);
@@ -142,6 +141,11 @@ namespace StoredEmailStatusUpdateWorker
 				_logger.LogError(ex.Message);
 				throw;
 			}
+		}
+
+		private StoredEmailStates ConvertFromMailjetStatus(string mailjetStatus)
+		{
+			return Enum.Parse<StoredEmailStates>(mailjetStatus);
 		}
 	}
 }
