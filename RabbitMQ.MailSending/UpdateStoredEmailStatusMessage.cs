@@ -7,5 +7,6 @@ namespace RabbitMQ.MailSending
 		public EmailPayload EventPayload { get; set; }
 		public string Status { get; set; }
 		public DateTime RecievedAt { get; set; }
+		public string ErrorInfo { get; set; }
 	}
 }

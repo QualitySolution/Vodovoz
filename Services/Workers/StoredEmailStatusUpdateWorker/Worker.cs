@@ -120,7 +120,14 @@ namespace StoredEmailStatusUpdateWorker
 
 							if(storedEmail.StateChangeDate < message.RecievedAt)
 							{
-								storedEmail.State = ConvertFromMailjetStatus(message.Status);
+								var newStatus = ConvertFromMailjetStatus(message.Status);
+
+								if(newStatus == StoredEmailStates.Undelivered || newStatus == StoredEmailStates.SendingError)
+								{
+									storedEmail.AddDescription(message.ErrorInfo);
+								}
+
+								storedEmail.State = newStatus;
 								storedEmail.StateChangeDate = message.RecievedAt;
 
 								unitOfWork.Save(storedEmail);
@@ -145,7 +152,20 @@ namespace StoredEmailStatusUpdateWorker
 
 		private StoredEmailStates ConvertFromMailjetStatus(string mailjetStatus)
 		{
-			return Enum.Parse<StoredEmailStates>(mailjetStatus);
+			switch(mailjetStatus)
+			{
+				case "sent":
+					return StoredEmailStates.Delivered;
+				case "open":
+					return StoredEmailStates.Opened;
+				case "spam":
+					return StoredEmailStates.MarkedAsSpam;
+				case "bounce":
+				case "blocked":
+					return StoredEmailStates.Undelivered;
+			}
+
+			throw new ArgumentOutOfRangeException(nameof(mailjetStatus), $"Тип события { mailjetStatus } не поддерживается");
 		}
 	}
 }
