@@ -6,10 +6,11 @@ services:
     environment:
       RABBITMQ_ERLANG_COOKIE: 'secret cookie here'
     volumes: 
-     - ./db-data:/var/lib/rabbitmq
+      - ./db-data:/var/lib/rabbitmq
+      - ./conf:/etc/rabbitmq
     ports: 
-     - 15672:15672
-     - 5672:5672
+      - 15672:15672
+      - 5672:5672
 
   emailsendingworkerservice:
     image: ${DOCKER_REGISTRY-}emailsendingworkerservice
